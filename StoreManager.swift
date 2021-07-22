@@ -5,6 +5,7 @@
 import Foundation
 import StoreKit
 
+/// Handles In-App Purchases.
 class StoreManager: NSObject {
     
     /// The singleton instance of the Store.
@@ -16,9 +17,27 @@ class StoreManager: NSObject {
     
     private override init() {}
     
-    /// Request product info from the App Store on the given product `identifiers`.
+    /// Returns the product identifiers from the `ProductIDs.plist` file. If there is an error, returns nil.
+    func getProductIDs() -> [String]? {
+        guard SKPaymentQueue.canMakePayments() else {
+            print("User is not allowed to make payments.")
+            // TODO: Notify user.
+            return nil
+        }
+        guard let path = Bundle.main.path(forResource: "ProductIDs", ofType: "plist") else {
+            print("Error: Resource file could not be found.")
+            return nil
+        }
+        guard let productIDs = NSArray(contentsOfFile: path) as? [String] else {
+            print("Error: ProductIDs are not Strings.")
+            return nil
+        }
+        return productIDs
+    }
+    
+    /// Request product info from the App Store for the given product `identifiers`.
     ///
-    /// The App Store's response is automatically sent to the `SKProductsRequestDelegate` (which in our case is the Store's singleton instance).
+    /// The App Store's response is automatically sent to the `SKProductsRequestDelegate` (which in our case is set to `self` in this method).
     func requestProducts(withIdentifiers identifiers: [String]) {
         productRequest = SKProductsRequest(productIdentifiers: Set(identifiers))
         productRequest.delegate = self
@@ -28,7 +47,7 @@ class StoreManager: NSObject {
     /// Requests to purchase the specified product.
     /// - Parameter product: The product to purchase.
     ///
-    ///     SKProduct objects are returned as part of an SKProductsResponse object.
+    ///     We can obtain an `SKProduct` to "buy" in our `productsRequest()` delegate method (defined below).
     func buy(_ product: SKProduct) {
         let payment = SKMutablePayment(product: product)
         SKPaymentQueue.default().add(payment)
@@ -40,16 +59,20 @@ class StoreManager: NSObject {
     }
 }
 
+// MARK: Product Request Delegate
+
 // Methods that handle response from products request.
 extension StoreManager: SKProductsRequestDelegate {
     
     func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
         print("The fetched products are \(response.products) and the invalid ProductIDs are \(response.invalidProductIdentifiers)")
+        // TODO: Handle the SKProducts that we've received (i.e. display them to the user so they can select which one they want to purchase).
     }
     
     // Optional
     func request(_ request: SKRequest, didFailWithError error: Error) {
         print("Error while requesting products: \(error.localizedDescription)")
+        // TODO: Alert user.
     }
     
     // Optional
@@ -58,6 +81,8 @@ extension StoreManager: SKProductsRequestDelegate {
     }
 }
 
+// MARK: Payment Queue Delegate
+
 // Methods that handle response from payment transactions (like buying or restoring an IAP).
 extension StoreManager: SKPaymentTransactionObserver {
     
@@ -65,9 +90,9 @@ extension StoreManager: SKPaymentTransactionObserver {
         for transaction in transactions {
             switch transaction.transactionState {
             case .purchasing: break
-            case .purchased: break // Handle successful transaction (unlock content here).
-            case .failed: break // Handle failed transaction.
-            case .restored: break // Handle restore transaction.
+            case .purchased: break // TODO: Handle successful transaction (unlock content).
+            case .failed: break // TODO: Handle failed transaction.
+            case .restored: break // TODO: Handle restore transaction.
             case .deferred: print("Transaction pending.")
             @unknown default: fatalError("Unknown payment transaction.")
             }
