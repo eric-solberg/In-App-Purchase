@@ -28,11 +28,11 @@ class StoreManager: NSObject {
             print("Error: Resource file could not be found.")
             return nil
         }
-        guard let productIDs = NSArray(contentsOfFile: path) as? [String] else {
-            print("Error: ProductIDs are not Strings.")
+        guard let productIDsDictionary = NSDictionary.init(contentsOfFile: path) as? [String: String] else {
+            print("Error: ProductIDs.plist is not a dictionary of type [String: String].")
             return nil
         }
-        return productIDs
+        return Array(productIDsDictionary.values) as [String]
     }
     
     /// Request product info from the App Store for the given product `identifiers`.
